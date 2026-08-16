@@ -14,6 +14,11 @@ struct AppStrings {
     var settings: String { value(fr: "Réglages", en: "Settings", es: "Ajustes", de: "Einstellungen", it: "Impostazioni", pt: "Configurações", nl: "Instellingen", ja: "設定", zh: "设置", ar: "الإعدادات") }
     var filter: String { value(fr: "Filtre", en: "Filter", es: "Filtro", de: "Filter", it: "Filtro", pt: "Filtro", nl: "Filter", ja: "フィルター", zh: "筛选", ar: "تصفية") }
     var allPOI: String { value(fr: "Tous", en: "All", es: "Todos", de: "Alle", it: "Tutti", pt: "Todos", nl: "Alles", ja: "すべて", zh: "全部", ar: "الكل") }
+    var mustSeePOI: String { value(fr: "À voir", en: "Must see", es: "Imprescindibles", de: "Sehenswert", it: "Da vedere", pt: "Imperdíveis", nl: "Aanraders", ja: "必見", zh: "必看", ar: "لا يفوت") }
+    var monumentsPOI: String { value(fr: "Monuments", en: "Monuments", es: "Monumentos", de: "Monumente", it: "Monumenti", pt: "Monumentos", nl: "Monumenten", ja: "記念碑", zh: "纪念建筑", ar: "معالم") }
+    var museumsPOI: String { value(fr: "Musées", en: "Museums", es: "Museos", de: "Museen", it: "Musei", pt: "Museus", nl: "Musea", ja: "博物館", zh: "博物馆", ar: "متاحف") }
+    var naturePOI: String { value(fr: "Nature", en: "Nature", es: "Naturaleza", de: "Natur", it: "Natura", pt: "Natureza", nl: "Natuur", ja: "自然", zh: "自然", ar: "طبيعة") }
+    var foodPOI: String { value(fr: "Cafés", en: "Cafes", es: "Cafés", de: "Cafés", it: "Caffè", pt: "Cafés", nl: "Cafés", ja: "カフェ", zh: "咖啡", ar: "مقاهي") }
     var wikipediaPOI: String { value(fr: "Wikipedia", en: "Wikipedia", es: "Wikipedia", de: "Wikipedia", it: "Wikipedia", pt: "Wikipedia", nl: "Wikipedia", ja: "Wikipedia", zh: "Wikipedia", ar: "ويكيبيديا") }
     var completePOI: String { value(fr: "Complet", en: "Complete", es: "Completo", de: "Komplett", it: "Completo", pt: "Completo", nl: "Compleet", ja: "完全", zh: "完整", ar: "كامل") }
     var list: String { value(fr: "Liste", en: "List", es: "Lista", de: "Liste", it: "Lista", pt: "Lista", nl: "Lijst", ja: "リスト", zh: "列表", ar: "قائمة") }
@@ -40,6 +45,29 @@ struct AppStrings {
     var back: String { value(fr: "Retour", en: "Back", es: "Volver", de: "Zurück", it: "Indietro", pt: "Voltar", nl: "Terug", ja: "戻る", zh: "返回", ar: "رجوع") }
     var offlineResults: String { value(fr: "Mode offline : derniers lieux enregistrés affichés.", en: "Offline mode: showing your last saved places.", es: "Modo offline: se muestran tus últimos lugares guardados.", de: "Offline-Modus: zuletzt gespeicherte Orte werden angezeigt.", it: "Modalità offline: mostro gli ultimi luoghi salvati.", pt: "Modo offline: exibindo seus últimos lugares salvos.", nl: "Offline modus: je laatst opgeslagen plekken worden getoond.", ja: "オフラインモード：最後に保存した場所を表示しています。", zh: "离线模式：显示上次保存的地点。", ar: "وضع عدم الاتصال: يتم عرض آخر الأماكن المحفوظة.") }
     var nearbyAlerts: String { value(fr: "Alertes proches", en: "Nearby alerts", es: "Alertas cercanas", de: "Nahe Alerts", it: "Avvisi vicini", pt: "Alertas próximas", nl: "Alerts dichtbij", ja: "近くの通知", zh: "附近提醒", ar: "تنبيهات قريبة") }
+    var guideInWalk: String { value(fr: "Guide en marche", en: "Walking guide", es: "Guía en marcha", de: "Guide unterwegs", it: "Guida in cammino", pt: "Guia em movimento", nl: "Wandelgids", ja: "歩行ガイド", zh: "步行导览", ar: "دليل أثناء المشي") }
+    var guideOff: String { value(fr: "Désactivé", en: "Off", es: "Desactivado", de: "Aus", it: "Disattivato", pt: "Desativado", nl: "Uit", ja: "オフ", zh: "关闭", ar: "إيقاف") }
+    var guidePrompt: String { value(fr: "Me proposer", en: "Prompt me", es: "Preguntar", de: "Vorschlagen", it: "Suggerisci", pt: "Sugerir", nl: "Voorstellen", ja: "提案", zh: "提示我", ar: "اقترح") }
+    var guideAutoPlay: String { value(fr: "Lecture auto", en: "Auto play", es: "Auto reproducir", de: "Automatisch", it: "Auto play", pt: "Auto play", nl: "Automatisch", ja: "自動再生", zh: "自动播放", ar: "تشغيل تلقائي") }
+    func autoGuideNearby(_ poiName: String, distance: String) -> String { String(format: value(fr: "%@ est à %@. Tu peux lancer le guide.", en: "%@ is %@ away. You can start the guide.", es: "%@ está a %@. Puedes iniciar la guía.", de: "%@ ist %@ entfernt. Du kannst den Guide starten.", it: "%@ è a %@. Puoi avviare la guida.", pt: "%@ está a %@. Você pode iniciar o guia.", nl: "%@ is %@ weg. Je kunt de gids starten.", ja: "%@ は %@ 先です。ガイドを開始できます。", zh: "%@ 距离 %@。你可以开始导览。", ar: "%@ على بعد %@. يمكنك بدء الدليل."), poiName, distance) }
+    var offlinePack: String { value(fr: "Pack offline", en: "Offline pack", es: "Paquete offline", de: "Offline-Paket", it: "Pacchetto offline", pt: "Pacote offline", nl: "Offline pakket", ja: "オフラインパック", zh: "离线包", ar: "حزمة دون اتصال") }
+    var downloadCurrentArea: String { value(fr: "Télécharger la zone", en: "Download area", es: "Descargar zona", de: "Gebiet laden", it: "Scarica zona", pt: "Baixar área", nl: "Gebied downloaden", ja: "エリアを保存", zh: "下载区域", ar: "تنزيل المنطقة") }
+    var offlinePackNeedsPOIs: String { value(fr: "Charge d'abord les lieux de la zone.", en: "Load area places first.", es: "Carga primero los lugares.", de: "Lade zuerst Orte.", it: "Carica prima i luoghi.", pt: "Carregue os lugares primeiro.", nl: "Laad eerst plekken.", ja: "先に場所を読み込んでください。", zh: "请先加载地点。", ar: "حمّل الأماكن أولاً.") }
+    func offlinePackSaved(_ title: String, poiCount: Int, contentCount: Int) -> String { String(format: value(fr: "%@ enregistré : %d POI, %d contenus.", en: "%@ saved: %d POIs, %d contents.", es: "%@ guardado: %d POI, %d contenidos.", de: "%@ gespeichert: %d POIs, %d Inhalte.", it: "%@ salvato: %d POI, %d contenuti.", pt: "%@ salvo: %d POIs, %d conteúdos.", nl: "%@ opgeslagen: %d POI's, %d content.", ja: "%@ 保存済み: %d POI、%d件のコンテンツ。", zh: "%@ 已保存：%d 个地点，%d 条内容。", ar: "تم حفظ %@: %d أماكن، %d محتويات."), title, poiCount, contentCount) }
+    var savedPacks: String { value(fr: "Zones enregistrées", en: "Saved areas", es: "Zonas guardadas", de: "Gespeicherte Gebiete", it: "Zone salvate", pt: "Áreas salvas", nl: "Opgeslagen gebieden", ja: "保存済みエリア", zh: "已保存区域", ar: "مناطق محفوظة") }
+    var personalNote: String { value(fr: "Note personnelle", en: "Personal note", es: "Nota personal", de: "Persönliche Notiz", it: "Nota personale", pt: "Nota pessoal", nl: "Persoonlijke notitie", ja: "個人メモ", zh: "个人备注", ar: "ملاحظة شخصية") }
+    var notePlaceholder: String { value(fr: "Ajouter une note pour ton carnet", en: "Add a note for your journal", es: "Añade una nota", de: "Notiz hinzufügen", it: "Aggiungi una nota", pt: "Adicionar nota", nl: "Notitie toevoegen", ja: "メモを追加", zh: "添加备注", ar: "أضف ملاحظة") }
+    var speechSpeed: String { value(fr: "Vitesse audio", en: "Audio speed", es: "Velocidad audio", de: "Audiogeschwindigkeit", it: "Velocità audio", pt: "Velocidade áudio", nl: "Audiosnelheid", ja: "音声速度", zh: "语音速度", ar: "سرعة الصوت") }
+    var slow: String { value(fr: "Lent", en: "Slow", es: "Lento", de: "Langsam", it: "Lento", pt: "Lento", nl: "Langzaam", ja: "遅い", zh: "慢", ar: "بطيء") }
+    var normal: String { value(fr: "Normal", en: "Normal", es: "Normal", de: "Normal", it: "Normale", pt: "Normal", nl: "Normaal", ja: "普通", zh: "正常", ar: "عادي") }
+    var fast: String { value(fr: "Rapide", en: "Fast", es: "Rápido", de: "Schnell", it: "Veloce", pt: "Rápido", nl: "Snel", ja: "速い", zh: "快", ar: "سريع") }
+    var confidence: String { value(fr: "Confiance", en: "Confidence", es: "Confianza", de: "Vertrauen", it: "Affidabilità", pt: "Confiança", nl: "Betrouwbaarheid", ja: "信頼度", zh: "可信度", ar: "الثقة") }
+    var wikipediaSource: String { value(fr: "Article Wikipedia", en: "Wikipedia article", es: "Artículo Wikipedia", de: "Wikipedia-Artikel", it: "Articolo Wikipedia", pt: "Artigo Wikipedia", nl: "Wikipedia artikel", ja: "Wikipedia記事", zh: "维基百科文章", ar: "مقال ويكيبيديا") }
+    var imageAvailable: String { value(fr: "Image sourcée", en: "Sourced image", es: "Imagen con fuente", de: "Bild mit Quelle", it: "Immagine con fonte", pt: "Imagem com fonte", nl: "Afbeelding met bron", ja: "出典付き画像", zh: "有来源图片", ar: "صورة موثقة") }
+    var typedPlace: String { value(fr: "Type identifié", en: "Typed place", es: "Tipo identificado", de: "Typ erkannt", it: "Tipo identificato", pt: "Tipo identificado", nl: "Type bekend", ja: "種別あり", zh: "类型已识别", ar: "نوع محدد") }
+    var gpsDistance: String { value(fr: "Distance GPS", en: "GPS distance", es: "Distancia GPS", de: "GPS-Distanz", it: "Distanza GPS", pt: "Distância GPS", nl: "GPS-afstand", ja: "GPS距離", zh: "GPS距离", ar: "مسافة GPS") }
+    var basicMapResult: String { value(fr: "Résultat carte", en: "Map result", es: "Resultado mapa", de: "Kartenergebnis", it: "Risultato mappa", pt: "Resultado mapa", nl: "Kaartresultaat", ja: "地図結果", zh: "地图结果", ar: "نتيجة خريطة") }
+    func cityTopPlaces(_ city: String, count: Int) -> String { String(format: value(fr: "%@ : %d lieux intéressants autour de cette ville.", en: "%@: %d interesting places around this city.", es: "%@: %d lugares interesantes.", de: "%@: %d interessante Orte.", it: "%@: %d luoghi interessanti.", pt: "%@: %d lugares interessantes.", nl: "%@: %d interessante plekken.", ja: "%@: %d 件の見どころ。", zh: "%@：%d 个有趣地点。", ar: "%@: %d أماكن مهمة."), city, count) }
     var configuration: String { value(fr: "Configuration", en: "Configuration", es: "Configuración", de: "Konfiguration", it: "Configurazione", pt: "Configuração", nl: "Configuratie", ja: "設定", zh: "配置", ar: "الإعدادات") }
     var duration: String { value(fr: "Durée", en: "Duration", es: "Duración", de: "Dauer", it: "Durata", pt: "Duração", nl: "Duur", ja: "所要時間", zh: "时长", ar: "المدة") }
     var mood: String { value(fr: "Envie", en: "Mood", es: "Ganas", de: "Stimmung", it: "Umore", pt: "Vontade", nl: "Zin", ja: "気分", zh: "偏好", ar: "المزاج") }
@@ -184,9 +212,30 @@ struct AppStrings {
         }
     }
 
+    func speechRateTitle(_ rate: NearbyPOIViewModel.SpeechRate) -> String {
+        switch rate {
+        case .slow: return slow
+        case .normal: return normal
+        case .fast: return fast
+        }
+    }
+
+    func guideModeTitle(_ mode: NearbyPOIViewModel.GuideMode) -> String {
+        switch mode {
+        case .off: return guideOff
+        case .prompt: return guidePrompt
+        case .autoPlay: return guideAutoPlay
+        }
+    }
+
     func poiFilterTitle(_ filter: NearbyPOIViewModel.POIFilter) -> String {
         switch filter {
         case .all: return allPOI
+        case .mustSee: return mustSeePOI
+        case .monuments: return monumentsPOI
+        case .museums: return museumsPOI
+        case .nature: return naturePOI
+        case .food: return foodPOI
         case .wikipedia: return wikipediaPOI
         case .complete: return completePOI
         }

@@ -120,10 +120,14 @@
   optimisée Apple/Wikidata, retour immédiat à `Ma position`, balades
   personnalisées démarrant toujours du GPS réel, transports via Apple Plans
   et fiche détail à largeur strictement contrainte pour toutes les fiches.
+- [specs/022](specs/022-guide-walk-offline-journal-quality/) ajoute le guide
+  en marche avec proposition/lecture auto, les packs offline de zone, les
+  notes personnelles du carnet, les filtres rapides, le contexte ville/village,
+  les indicateurs de confiance et la vitesse audio réglable.
 - Reste à durcir côté produit : meilleure UX des erreurs réseau publiques,
-  parcours audio automatique, meilleure présentation des sources non
-  Wikipedia, tests visuels automatisés des fiches détail longues, et
-  vérification humaine du comportement audio en arrière-plan sur appareil.
+  meilleure présentation des sources non Wikipedia, tests visuels automatisés
+  des fiches détail longues, et vérification humaine du comportement audio en
+  arrière-plan sur appareil.
 
 ## Phase 6 — Distribution (à faire)
 
@@ -141,7 +145,8 @@
   par pays, meilleure hiérarchisation des sources institutionnelles quand
   plusieurs offices/centres touristiques sont proches, et cache local dédié
   aux fiches externes.
-- Ajouter un mode parcours audio automatique.
+- Tester en conditions réelles le guide en marche et ajuster ses seuils de
+  distance/cooldown.
 - Préparer la distribution : bundle id définitif, signing, icône finale,
   privacy strings, TestFlight.
 

@@ -35,6 +35,8 @@ struct ContentView: View {
                     VStack(alignment: .leading, spacing: 18) {
                         hero
                         controls
+                        quickFilters
+                        autoGuideBanner
                         content
                     }
                     .padding(.horizontal, 18)
@@ -143,6 +145,66 @@ struct ContentView: View {
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
+    private var quickFilters: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(NearbyPOIViewModel.POIFilter.allCases) { filter in
+                    Button {
+                        viewModel.poiFilter = filter
+                    } label: {
+                        Label(viewModel.strings.poiFilterTitle(filter), systemImage: filterIcon(filter))
+                            .font(.caption.weight(.bold))
+                            .lineLimit(1)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(viewModel.poiFilter == filter ? .white.opacity(0.24) : .white.opacity(0.10))
+                            .foregroundStyle(.white.opacity(viewModel.poiFilter == filter ? 1 : 0.78))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var autoGuideBanner: some View {
+        if let suggestion = viewModel.autoGuideSuggestion {
+            HStack(spacing: 10) {
+                Label(
+                    viewModel.strings.autoGuideNearby(suggestion.poi.name, distance: distanceText(suggestion.distanceMeters)),
+                    systemImage: "speaker.wave.2.fill"
+                )
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.86))
+                .lineLimit(2)
+                Spacer()
+                Button {
+                    Task { await viewModel.playAutoGuideSuggestion() }
+                } label: {
+                    Image(systemName: "play.fill")
+                        .frame(width: 34, height: 34)
+                        .background(.white)
+                        .foregroundStyle(.black)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                Button {
+                    viewModel.dismissAutoGuideSuggestion()
+                } label: {
+                    Image(systemName: "xmark")
+                        .frame(width: 30, height: 30)
+                        .background(.white.opacity(0.14))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(12)
+            .background(.white.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+    }
+
     private func icon(for mode: NearbyPOIViewModel.ListMode) -> String {
         switch mode {
         case .nearby: return "location"
@@ -150,6 +212,19 @@ struct ContentView: View {
         case .journal: return "book.closed"
         case .favorites: return "heart"
         case .history: return "clock.arrow.circlepath"
+        }
+    }
+
+    private func filterIcon(_ filter: NearbyPOIViewModel.POIFilter) -> String {
+        switch filter {
+        case .all: return "circle.grid.2x2"
+        case .mustSee: return "star.fill"
+        case .monuments: return "building.columns"
+        case .museums: return "theatermasks"
+        case .nature: return "leaf"
+        case .food: return "cup.and.saucer"
+        case .wikipedia: return "book"
+        case .complete: return "checkmark.seal"
         }
     }
 
@@ -333,6 +408,12 @@ struct ContentView: View {
                                         .font(.caption)
                                         .foregroundStyle(.white.opacity(0.72))
                                         .lineLimit(2)
+                                    if let note = entry.note {
+                                        Text(note)
+                                            .font(.caption2.weight(.semibold))
+                                            .foregroundStyle(.white.opacity(0.82))
+                                            .lineLimit(2)
+                                    }
                                 }
                                 Spacer()
                             }
@@ -355,6 +436,9 @@ struct ContentView: View {
         case .loaded(let pois):
             if let placeName = viewModel.browsingPlaceName {
                 browsingBanner(placeName)
+            }
+            if viewModel.browsingPlaceIsAdministrative {
+                cityInsightCard(placeName: viewModel.browsingPlaceName, count: pois.count)
             }
             if let notice = viewModel.offlineNotice {
                 offlineBanner(notice)
@@ -418,6 +502,19 @@ struct ContentView: View {
             .tint(.white.opacity(0.22))
         }
         .padding(12)
+        .background(.white.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func cityInsightCard(placeName: String?, count: Int) -> some View {
+        Label(
+            viewModel.strings.cityTopPlaces(placeName ?? viewModel.strings.aroundYou, count: min(count, 10)),
+            systemImage: "building.2.crop.circle"
+        )
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(.white.opacity(0.86))
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.white.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
@@ -621,6 +718,35 @@ private struct ConfigurationView: View {
                     Picker(viewModel.strings.mood, selection: $viewModel.walkDesire) {
                         ForEach(NearbyPOIViewModel.WalkDesire.allCases) { desire in
                             Text(viewModel.strings.walkDesireTitle(desire)).tag(desire)
+                        }
+                    }
+                }
+
+                Section(viewModel.strings.guideInWalk) {
+                    Picker(viewModel.strings.guideInWalk, selection: $viewModel.guideMode) {
+                        ForEach(NearbyPOIViewModel.GuideMode.allCases) { mode in
+                            Text(viewModel.strings.guideModeTitle(mode)).tag(mode)
+                        }
+                    }
+                    Picker(viewModel.strings.speechSpeed, selection: $viewModel.speechRate) {
+                        ForEach(NearbyPOIViewModel.SpeechRate.allCases) { rate in
+                            Text(viewModel.strings.speechRateTitle(rate)).tag(rate)
+                        }
+                    }
+                }
+
+                Section(viewModel.strings.offlinePack) {
+                    Button {
+                        Task { await viewModel.downloadOfflinePackForCurrentArea() }
+                    } label: {
+                        Label(viewModel.strings.downloadCurrentArea, systemImage: "arrow.down.circle")
+                    }
+                    if let status = viewModel.offlinePackStatusText {
+                        Text(status)
+                    }
+                    if viewModel.offlinePacks.isEmpty == false {
+                        ForEach(viewModel.offlinePacks) { pack in
+                            Label("\(pack.title) · \(pack.poiCount) POI · \(pack.contentCount)", systemImage: "checkmark.circle")
                         }
                     }
                 }

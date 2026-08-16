@@ -23,7 +23,7 @@ in product terms; `plan.md` runs the Constitution Check against
 relevant ADR(s) in `docs/adr/`; `tasks.md` is the ordered execution
 checklist, ending with re-running `/graphify` and confirming CI is green.
 
-Current latest spec: `021-field-test-realtime-search-walk-polish`, created
-after real-device field testing to document live GPS refresh, composite
-Apple/Wikidata place search, custom walks, transport handoff, chapter-level
-playback and strict POI-detail layout.
+Current latest spec: `022-guide-walk-offline-journal-quality`, created to
+document guide-in-walk prompts/autoplay, offline area packs, journal notes,
+quick filters, city/village context, confidence badges and adjustable audio
+speed.

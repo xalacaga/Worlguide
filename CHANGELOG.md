@@ -92,6 +92,19 @@ Le format suit l'esprit de [Keep a Changelog](https://keepachangelog.com/fr/1.1.
   des sources structurées (Wikidata, OSM, offices de tourisme à proximité)
   n'a rien trouvé : ouvre le moteur de recherche du téléphone avec le nom
   du POI, sans jamais présenter ce résultat comme une source extraite.
+- Guide en marche : l'app détecte un POI très proche pendant le suivi GPS,
+  affiche une proposition d'écoute et peut lancer automatiquement le premier
+  chapitre selon le réglage choisi.
+- Packs offline de zone : sauvegarde du catalogue POI courant et préchargement
+  borné des contenus des principaux lieux dans le cache local existant.
+- Carnet enrichi avec notes personnelles persistées par POI et incluses dans
+  l'export.
+- Filtres rapides visibles sur l'écran principal : À voir, monuments, musées,
+  nature, cafés, Wikipedia et fiches complètes.
+- Fiche POI enrichie avec indicateurs de confiance lisibles (article
+  Wikipedia, image sourcée, type identifié, distance GPS ou résultat carte).
+- Lecture vocale avec vitesse réglable (lent, normal, rapide) tout en restant
+  basée sur `AVSpeechSynthesizer` on-device.
 
 ### Fixed
 

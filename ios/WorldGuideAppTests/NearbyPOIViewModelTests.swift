@@ -1047,6 +1047,18 @@ final class NearbyPOIViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.travelJournalExportText.contains("Favorite bridge"))
     }
 
+    func testPersonalNotesPersistIntoTravelJournal() async throws {
+        let poi = POI(id: "note", name: "Note POI", coordinate: Coordinate(latitude: 0, longitude: 0))
+        let (viewModel, _) = makeViewModel(content: FakeContentProviding(result: .success(nil)), userDefaults: userDefaults)
+
+        await viewModel.select(poi)
+        viewModel.setNote("Belle découverte", for: poi)
+
+        let reloaded = makeViewModel(userDefaults: userDefaults).0
+        XCTAssertEqual(reloaded.note(for: poi), "Belle découverte")
+        XCTAssertEqual(reloaded.travelJournalSummary.entries.first?.note, "Belle découverte")
+    }
+
     func testShortReadingModeUsesACondensedText() async throws {
         let longText = "This first sentence gives the essential idea quickly. " + Array(repeating: "detail", count: 90).joined(separator: " ")
         let section = ContentSection(id: "s1", title: "Section", text: longText)
@@ -1073,6 +1085,70 @@ final class NearbyPOIViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.qualityLabel(for: plain), "Discovery")
         XCTAssertEqual(viewModel.qualityLabel(for: documented), "Must see")
+    }
+
+    func testQuickFiltersCanSelectMonumentsMuseumsNatureAndFood() {
+        let (viewModel, _) = makeViewModel()
+        let monument = POI(id: "m", name: "Old Castle", coordinate: Coordinate(latitude: 0, longitude: 0), category: "monument")
+        let museum = POI(id: "mu", name: "City Museum", coordinate: Coordinate(latitude: 0, longitude: 0), category: "museum")
+        let nature = POI(id: "p", name: "River Park", coordinate: Coordinate(latitude: 0, longitude: 0), category: "park")
+        let cafe = POI(id: "c", name: "Nonna Café", coordinate: Coordinate(latitude: 0, longitude: 0), category: "cafe")
+        let pois = [monument, museum, nature, cafe]
+
+        viewModel.poiFilter = .monuments
+        XCTAssertEqual(viewModel.filteredPOIs(pois), [monument])
+        viewModel.poiFilter = .museums
+        XCTAssertEqual(viewModel.filteredPOIs(pois), [museum])
+        viewModel.poiFilter = .nature
+        XCTAssertEqual(viewModel.filteredPOIs(pois), [nature])
+        viewModel.poiFilter = .food
+        XCTAssertEqual(viewModel.filteredPOIs(pois), [cafe])
+    }
+
+    func testOfflinePackPersistsCurrentAreaPOIsAndContentCount() async throws {
+        let package = ContentPackage(
+            id: "pkg",
+            poiID: "poi-1",
+            language: "en",
+            sections: [ContentSection(id: "s1", title: "Story", text: "Text")],
+            provenance: []
+        )
+        let poi = POI(id: "poi-1", name: "POI 1", coordinate: Coordinate(latitude: 48.8584, longitude: 2.2945), hasWikipediaArticle: true)
+        let (viewModel, _) = makeViewModel(
+            pois: FakePOIProviding(result: .success([poi])),
+            content: FakeContentProviding(result: .success(package)),
+            userDefaults: userDefaults
+        )
+
+        await viewModel.loadNearbyPOIs()
+        await viewModel.downloadOfflinePackForCurrentArea()
+
+        XCTAssertEqual(viewModel.offlinePacks.first?.poiCount, 1)
+        XCTAssertEqual(viewModel.offlinePacks.first?.contentCount, 1)
+        let reloaded = makeViewModel(userDefaults: userDefaults).0
+        XCTAssertEqual(reloaded.offlinePacks.first?.poiCount, 1)
+    }
+
+    func testGuideModeSuggestsNearbyPOIAndCanPlayIt() async throws {
+        let package = ContentPackage(
+            id: "pkg",
+            poiID: "near",
+            language: "en",
+            sections: [ContentSection(id: "s1", title: "Intro", text: "Nearby story")],
+            provenance: []
+        )
+        let near = POI(id: "near", name: "Near POI", coordinate: Coordinate(latitude: 48.85841, longitude: 2.2945), hasWikipediaArticle: true)
+        let (viewModel, audio) = makeViewModel(
+            pois: FakePOIProviding(result: .success([near])),
+            content: FakeContentProviding(result: .success(package))
+        )
+
+        await viewModel.loadNearbyPOIs()
+        XCTAssertEqual(viewModel.autoGuideSuggestion?.poi, near)
+
+        await viewModel.playAutoGuideSuggestion()
+        let played = await audio.playedAssets
+        XCTAssertEqual(played.map(\.text), ["Nearby story"])
     }
 
     func testAppStringsFollowTheSelectedLanguage() async throws {
@@ -1116,6 +1192,7 @@ final class NearbyPOIViewModelTests: XCTestCase {
         let resumeCount = await audio.resumeCount
         let stopCount = await audio.stopCount
         XCTAssertEqual(played.map(\.text), ["Hello"])
+        XCTAssertEqual(played.map(\.rateMultiplier), [NearbyPOIViewModel.SpeechRate.normal.multiplier])
         XCTAssertEqual(pauseCount, 1)
         XCTAssertEqual(resumeCount, 1)
         XCTAssertEqual(stopCount, 1)

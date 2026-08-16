@@ -22,11 +22,25 @@ struct TravelJournalSummary: Equatable {
     }
 }
 
+struct AutoGuideSuggestion: Equatable {
+    let poi: POI
+    let distanceMeters: Double
+}
+
+struct OfflineAreaPack: Codable, Equatable, Identifiable {
+    let id: String
+    let title: String
+    let createdAt: Date
+    let poiCount: Int
+    let contentCount: Int
+}
+
 struct TravelJournalEntry: Identifiable, Equatable {
     let id: String
     let poi: POI
     let anecdote: String
     let isFavorite: Bool
+    let note: String?
 }
 
 enum SmartWalkPlanner {
@@ -160,14 +174,15 @@ enum SmartWalkPlanner {
 }
 
 enum TravelJournalBuilder {
-    static func summary(from recentPOIs: [POI], favoritePOIs: [POI], date: Date = Date()) -> TravelJournalSummary {
+    static func summary(from recentPOIs: [POI], favoritePOIs: [POI], notes: [String: String] = [:], date: Date = Date()) -> TravelJournalSummary {
         let favoriteIDs = Set(favoritePOIs.map(\.id))
         let entries = recentPOIs.prefix(12).map { poi in
             TravelJournalEntry(
                 id: poi.id,
                 poi: poi,
                 anecdote: anecdote(for: poi),
-                isFavorite: favoriteIDs.contains(poi.id)
+                isFavorite: favoriteIDs.contains(poi.id),
+                note: notes[poi.id]?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
             )
         }
 
@@ -191,7 +206,8 @@ enum TravelJournalBuilder {
         formatter.timeStyle = .none
 
         let lines = summary.entries.enumerated().map { index, entry in
-            "\(index + 1). \(entry.poi.name) - \(entry.anecdote)"
+            let note = entry.note.map { " - \($0)" } ?? ""
+            return "\(index + 1). \(entry.poi.name) - \(entry.anecdote)\(note)"
         }
 
         return """
@@ -221,5 +237,11 @@ enum TravelJournalBuilder {
             return "\(Int(meters.rounded())) m"
         }
         return String(format: "%.1f km", meters / 1000)
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
     }
 }

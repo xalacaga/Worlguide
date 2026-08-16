@@ -85,7 +85,7 @@ public final class AVSpeechSynthesizerAudioPlayer: AudioPlaying, @unchecked Send
 
         let utterance = AVSpeechUtterance(string: asset.text)
         utterance.voice = voiceResolver(asset.language)
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.92
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * asset.rateMultiplier
         utterance.pitchMultiplier = 1.02
         utterance.prefersAssistiveTechnologySettings = true
         synthesizer.speak(utterance)

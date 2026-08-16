@@ -36,8 +36,37 @@ final class NearbyPOIViewModel: ObservableObject {
         }
     }
 
+    enum SpeechRate: String, CaseIterable, Identifiable {
+        case slow
+        case normal
+        case fast
+
+        var id: String { rawValue }
+
+        var multiplier: Float {
+            switch self {
+            case .slow: return 0.78
+            case .normal: return 0.92
+            case .fast: return 1.08
+            }
+        }
+    }
+
+    enum GuideMode: String, CaseIterable, Identifiable {
+        case off
+        case prompt
+        case autoPlay
+
+        var id: String { rawValue }
+    }
+
     enum POIFilter: String, CaseIterable, Identifiable {
         case all
+        case mustSee
+        case monuments
+        case museums
+        case nature
+        case food
         case wikipedia
         case complete
 
@@ -208,6 +237,10 @@ final class NearbyPOIViewModel: ObservableObject {
     @Published private(set) var userCoordinate: Coordinate?
     @Published private(set) var favoritePOIs: [POI] = []
     @Published private(set) var recentPOIs: [POI] = []
+    @Published private(set) var travelNotes: [String: String] = [:]
+    @Published private(set) var offlinePacks: [OfflineAreaPack] = []
+    @Published private(set) var offlinePackStatusText: String?
+    @Published private(set) var autoGuideSuggestion: AutoGuideSuggestion?
     @Published private(set) var offlineNotice: String?
     @Published private(set) var placeSearchResults: [PlaceResult] = []
     @Published private(set) var placeSearchText: String?
@@ -223,6 +256,8 @@ final class NearbyPOIViewModel: ObservableObject {
     @Published private(set) var browsingPlaceIsAdministrative = false
     @Published var listMode: ListMode = .nearby
     @Published var readingMode: ReadingMode = .short
+    @Published var speechRate: SpeechRate = .normal
+    @Published var guideMode: GuideMode = .prompt
     @Published var poiFilter: POIFilter = .all
     @Published var radiusMeters: Double
     @Published private(set) var nearbyAlertsEnabled: Bool
@@ -253,9 +288,13 @@ final class NearbyPOIViewModel: ObservableObject {
     private var placeSearchCache: [String: [PlaceResult]] = [:]
     private var lastNearbyPOICenterCoordinate: Coordinate?
     private var isRefreshingPOIsForLiveLocation = false
+    private var announcedAutoGuidePOIIDs: Set<String> = []
+    private var isAutoPlayingGuide = false
 
     private static let favoritesKey = "worldguide.favoritePOIs.v1"
     private static let historyKey = "worldguide.recentPOIs.v1"
+    private static let travelNotesKey = "worldguide.travelNotes.v1"
+    private static let offlinePacksKey = "worldguide.offlinePacks.v1"
     private static let nearbyCacheKey = "worldguide.cachedNearbyPOIs.v1"
     private static let contentCacheKey = "worldguide.cachedContentPackages.v1"
     private static let nearbyAlertsKey = "worldguide.nearbyAlerts.enabled.v1"
@@ -263,6 +302,7 @@ final class NearbyPOIViewModel: ObservableObject {
     private static let administrativePlacePOIRadiusMeters = 3_000.0
     private static let administrativePlacePOILimit = 10
     private static let livePOIRefreshDistanceMeters = 75.0
+    private static let guideDistanceMeters = 140.0
 
     init(
         locationProvider: LocationProviding,
@@ -291,6 +331,8 @@ final class NearbyPOIViewModel: ObservableObject {
         self.nearbyAlertsEnabled = userDefaults.bool(forKey: Self.nearbyAlertsKey)
         self.favoritePOIs = Self.loadPOIs(from: userDefaults, key: Self.favoritesKey)
         self.recentPOIs = Self.loadPOIs(from: userDefaults, key: Self.historyKey)
+        self.travelNotes = Self.loadStringDictionary(from: userDefaults, key: Self.travelNotesKey)
+        self.offlinePacks = Self.loadOfflinePacks(from: userDefaults)
     }
 
     func loadNearbyPOIs(radiusMeters: Double? = nil, preferLastKnownUserLocation: Bool = false) async {
@@ -311,6 +353,7 @@ final class NearbyPOIViewModel: ObservableObject {
             let pois = try await poiProvider.nearbyPOI(around: coordinate, radiusMeters: searchRadius, language: language)
             let sortedPOIs = displayedPOIs(pois, around: coordinate)
             state = .loaded(sortedPOIs)
+            await updateAutoGuideSuggestion(from: sortedPOIs, userCoordinate: coordinate)
             offlineNotice = nil
             lastNearbyPOICenterCoordinate = browsingCoordinate == nil ? coordinate : nil
             // A searched/browsed location isn't where the user actually
@@ -334,6 +377,9 @@ final class NearbyPOIViewModel: ObservableObject {
             if browsingCoordinate == nil, let cachedPOIs = loadCachedNearbyPOIs() {
                 offlineNotice = strings.offlineResults
                 state = .loaded(cachedPOIs)
+                if let userCoordinate {
+                    await updateAutoGuideSuggestion(from: cachedPOIs, userCoordinate: userCoordinate)
+                }
             } else {
                 state = .failed(strings.nearbyFailure)
             }
@@ -346,6 +392,9 @@ final class NearbyPOIViewModel: ObservableObject {
                 userCoordinate = coordinate
                 guard browsingCoordinate == nil else { continue }
                 resortLoadedPOIs(from: coordinate)
+                if case .loaded(let pois) = state {
+                    await updateAutoGuideSuggestion(from: pois, userCoordinate: coordinate)
+                }
                 await refreshNearbyPOIsForLiveLocationIfNeeded(around: coordinate)
             }
         } catch WGError.permissionDenied {
@@ -442,7 +491,7 @@ final class NearbyPOIViewModel: ObservableObject {
     }
 
     var travelJournalSummary: TravelJournalSummary {
-        TravelJournalBuilder.summary(from: recentPOIs, favoritePOIs: favoritePOIs)
+        TravelJournalBuilder.summary(from: recentPOIs, favoritePOIs: favoritePOIs, notes: travelNotes)
     }
 
     var travelJournalExportText: String {
@@ -452,6 +501,71 @@ final class NearbyPOIViewModel: ObservableObject {
     func clearHistory() {
         recentPOIs = []
         userDefaults.removeObject(forKey: Self.historyKey)
+    }
+
+    func note(for poi: POI) -> String {
+        travelNotes[poi.id] ?? ""
+    }
+
+    func setNote(_ note: String, for poi: POI) {
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            travelNotes.removeValue(forKey: poi.id)
+        } else {
+            travelNotes[poi.id] = trimmed
+        }
+        persist(travelNotes, key: Self.travelNotesKey)
+    }
+
+    func dismissAutoGuideSuggestion() {
+        autoGuideSuggestion = nil
+    }
+
+    func playAutoGuideSuggestion() async {
+        guard let poi = autoGuideSuggestion?.poi else { return }
+        await playAutoGuide(for: poi)
+    }
+
+    func downloadOfflinePackForCurrentArea() async {
+        guard case .loaded(let pois) = state else {
+            offlinePackStatusText = strings.offlinePackNeedsPOIs
+            return
+        }
+        let packPOIs = Array(pois.prefix(20))
+        guard packPOIs.isEmpty == false else {
+            offlinePackStatusText = strings.offlinePackNeedsPOIs
+            return
+        }
+
+        persistCachedNearbyPOIs(packPOIs)
+        var contentCount = 0
+        for poi in packPOIs.prefix(12) where Self.isSearchedPlacePOI(poi) == false {
+            let cacheKey = "\(poi.id)|\(language)"
+            if loadCachedContent(cacheKey: cacheKey) != nil {
+                contentCount += 1
+                continue
+            }
+            if let content = try? await contentProvider.content(forPOI: poi.id, language: language) {
+                contentCache[cacheKey] = .loaded(content)
+                persistCachedContent(content, cacheKey: cacheKey)
+                contentCount += 1
+            }
+        }
+
+        let pack = OfflineAreaPack(
+            id: "\(language)|\(Int(radiusMeters.rounded()))|\(Int(Date().timeIntervalSince1970))",
+            title: browsingPlaceName ?? strings.aroundYou,
+            createdAt: Date(),
+            poiCount: packPOIs.count,
+            contentCount: contentCount
+        )
+        offlinePacks.removeAll { $0.title == pack.title }
+        offlinePacks.insert(pack, at: 0)
+        if offlinePacks.count > 8 {
+            offlinePacks = Array(offlinePacks.prefix(8))
+        }
+        persistOfflinePacks()
+        offlinePackStatusText = strings.offlinePackSaved(pack.title, poiCount: pack.poiCount, contentCount: pack.contentCount)
     }
 
     private func refreshWeatherContext(around coordinate: Coordinate) async {
@@ -666,7 +780,7 @@ final class NearbyPOIViewModel: ObservableObject {
         // finishes (specs/010 — the protocol has no completion signal),
         // so `playbackState` reflects user intent (play/pause/stop), not
         // a live "is audio currently coming out of the speaker" signal.
-        try? await audioPlayer.play(AudioAsset(id: section.id, text: textForReading(section), language: package.language))
+        try? await audioPlayer.play(AudioAsset(id: section.id, text: textForReading(section), language: package.language, rateMultiplier: speechRate.multiplier))
     }
 
     func pausePlayback() async {
@@ -711,6 +825,16 @@ final class NearbyPOIViewModel: ObservableObject {
             switch poiFilter {
             case .all:
                 return true
+            case .mustSee:
+                return Self.isSearchedPlacePOI(poi) || qualityScore(for: poi) >= 5
+            case .monuments:
+                return matches(poi, keywords: ["monument", "memorial", "palace", "castle", "church", "cathedral", "statue", "gate", "tower", "mémorial", "palais", "château", "église", "cathédrale"])
+            case .museums:
+                return matches(poi, keywords: ["museum", "gallery", "collection", "exhibition", "musée", "galerie", "exposition"])
+            case .nature:
+                return matches(poi, keywords: ["park", "garden", "river", "lake", "forest", "view", "parc", "jardin", "rivière", "lac", "forêt", "vue"])
+            case .food:
+                return matches(poi, keywords: ["restaurant", "cafe", "café", "market", "food", "bar", "marché"])
             case .wikipedia:
                 return Self.isSearchedPlacePOI(poi) || poi.hasWikipediaArticle
             case .complete:
@@ -774,6 +898,7 @@ final class NearbyPOIViewModel: ObservableObject {
             let pois = try await poiProvider.nearbyPOI(around: coordinate, radiusMeters: radiusMeters, language: language)
             let sortedPOIs = displayedPOIs(pois, around: coordinate)
             state = .loaded(sortedPOIs)
+            await updateAutoGuideSuggestion(from: sortedPOIs, userCoordinate: coordinate)
             offlineNotice = nil
             self.lastNearbyPOICenterCoordinate = coordinate
             persistCachedNearbyPOIs(sortedPOIs)
@@ -785,11 +910,56 @@ final class NearbyPOIViewModel: ObservableObject {
         }
     }
 
+    private func updateAutoGuideSuggestion(from pois: [POI], userCoordinate: Coordinate) async {
+        guard guideMode != .off, browsingCoordinate == nil else {
+            autoGuideSuggestion = nil
+            return
+        }
+        guard let candidate = pois
+            .map({ poi in (poi, userCoordinate.distanceMeters(to: poi.coordinate)) })
+            .filter({ $0.1 <= Self.guideDistanceMeters })
+            .sorted(by: { lhs, rhs in
+                if abs(lhs.1 - rhs.1) > 1 { return lhs.1 < rhs.1 }
+                return qualityScore(for: lhs.0) > qualityScore(for: rhs.0)
+            })
+            .first else {
+            autoGuideSuggestion = nil
+            return
+        }
+
+        autoGuideSuggestion = AutoGuideSuggestion(poi: candidate.0, distanceMeters: candidate.1)
+        guard guideMode == .autoPlay,
+              announcedAutoGuidePOIIDs.contains(candidate.0.id) == false,
+              isAutoPlayingGuide == false else { return }
+        announcedAutoGuidePOIIDs.insert(candidate.0.id)
+        await playAutoGuide(for: candidate.0)
+    }
+
+    private func playAutoGuide(for poi: POI) async {
+        guard Self.isSearchedPlacePOI(poi) == false else { return }
+        isAutoPlayingGuide = true
+        defer { isAutoPlayingGuide = false }
+        await select(poi)
+        guard case .loaded(let package) = contentState,
+              let firstSection = package.sections.first else { return }
+        await play(firstSection)
+    }
+
     func qualityLabel(for poi: POI) -> String {
         switch qualityScore(for: poi) {
         case let score:
             return strings.qualityLabel(score: score)
         }
+    }
+
+    func confidenceBadges(for poi: POI) -> [String] {
+        var badges: [String] = []
+        if poi.hasWikipediaArticle { badges.append(strings.wikipediaSource) }
+        if poi.imageURL != nil { badges.append(strings.imageAvailable) }
+        if poi.category?.isEmpty == false { badges.append(strings.typedPlace) }
+        if distanceText(for: poi) != nil { badges.append(strings.gpsDistance) }
+        if badges.isEmpty { badges.append(strings.basicMapResult) }
+        return badges
     }
 
     func distanceText(for poi: POI) -> String? {
@@ -872,8 +1042,39 @@ final class NearbyPOIViewModel: ObservableObject {
         return pois
     }
 
+    private static func loadStringDictionary(from userDefaults: UserDefaults, key: String) -> [String: String] {
+        guard let data = userDefaults.data(forKey: key),
+              let values = try? JSONDecoder().decode([String: String].self, from: data) else {
+            return [:]
+        }
+        return values
+    }
+
+    private static func loadOfflinePacks(from userDefaults: UserDefaults) -> [OfflineAreaPack] {
+        guard let data = userDefaults.data(forKey: offlinePacksKey),
+              let packs = try? JSONDecoder().decode([OfflineAreaPack].self, from: data) else {
+            return []
+        }
+        return packs
+    }
+
+    private func persistOfflinePacks() {
+        guard let data = try? JSONEncoder().encode(offlinePacks) else { return }
+        userDefaults.set(data, forKey: Self.offlinePacksKey)
+    }
+
+    private func matches(_ poi: POI, keywords: [String]) -> Bool {
+        let text = "\(poi.name) \(poi.category ?? "")".lowercased()
+        return keywords.contains { text.contains($0) }
+    }
+
     private func persist(_ pois: [POI], key: String) {
         guard let data = try? JSONEncoder().encode(pois) else { return }
+        userDefaults.set(data, forKey: key)
+    }
+
+    private func persist(_ values: [String: String], key: String) {
+        guard let data = try? JSONEncoder().encode(values) else { return }
         userDefaults.set(data, forKey: key)
     }
 

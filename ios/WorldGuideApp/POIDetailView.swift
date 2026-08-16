@@ -12,6 +12,7 @@ struct POIDetailView: View {
     let isInCustomWalk: Bool
     let onToggleCustomWalk: (() -> Void)?
     @State private var showsExternalInfo = false
+    @State private var noteText = ""
 
     init(
         viewModel: NearbyPOIViewModel,
@@ -126,6 +127,7 @@ struct POIDetailView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 qualityPill
+                confidencePills
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -135,6 +137,8 @@ struct POIDetailView: View {
                 }
             }
             .pickerStyle(.segmented)
+
+            noteEditor
 
             VStack(spacing: 10) {
                 if let onToggleCustomWalk {
@@ -180,6 +184,9 @@ struct POIDetailView: View {
         .sheet(isPresented: $showsExternalInfo) {
             ExternalInfoSheet(viewModel: viewModel, poi: poi)
         }
+        .onAppear {
+            noteText = viewModel.note(for: poi)
+        }
     }
 
     private var qualityPill: some View {
@@ -192,6 +199,37 @@ struct POIDetailView: View {
             .foregroundStyle(.black)
             .background(.white)
             .clipShape(Capsule())
+    }
+
+    private var confidencePills: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(viewModel.strings.confidence, systemImage: "checkmark.seal")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.white.opacity(0.76))
+            FlowPills(items: viewModel.confidenceBadges(for: poi))
+        }
+    }
+
+    private var noteEditor: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(viewModel.strings.personalNote, systemImage: "square.and.pencil")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.white.opacity(0.76))
+            TextField(viewModel.strings.notePlaceholder, text: $noteText, axis: .vertical)
+                .lineLimit(2...4)
+                .textFieldStyle(.plain)
+                .font(.subheadline)
+                .padding(12)
+                .foregroundStyle(.white)
+                .background(.white.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .onSubmit {
+                    viewModel.setNote(noteText, for: poi)
+                }
+                .onChange(of: noteText) { newValue in
+                    viewModel.setNote(newValue, for: poi)
+                }
+        }
     }
 
     private var walkingDirectionsButton: some View {
@@ -466,6 +504,27 @@ struct POIDetailView: View {
         case .wikipedia: return "book"
         case .openStreetMap: return "map"
         case .institutional: return "building.columns"
+        }
+    }
+}
+
+private struct FlowPills: View {
+    let items: [String]
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 118), spacing: 8)], alignment: .leading, spacing: 8) {
+            ForEach(items, id: \.self) { item in
+                Text(item)
+                    .font(.caption2.weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .foregroundStyle(.white.opacity(0.84))
+                    .background(.white.opacity(0.10))
+                    .clipShape(Capsule())
+            }
         }
     }
 }
