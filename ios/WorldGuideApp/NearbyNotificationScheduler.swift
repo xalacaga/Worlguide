@@ -23,17 +23,28 @@ enum NearbyNotificationPolicy {
     }
 }
 
+/// Narrow seam around `UNUserNotificationCenter` (a concrete Apple type)
+/// so `UserNotificationNearbyScheduler`'s cooldown logic is testable
+/// without touching the real system notification center — same role as
+/// `WGLocation.LocalSearchPerforming` around `MKLocalSearch`.
+@MainActor
+protocol NotificationCenterAdding {
+    func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool
+    func add(_ request: UNNotificationRequest) async throws
+}
+
+extension UNUserNotificationCenter: NotificationCenterAdding {}
+
 @MainActor
 final class UserNotificationNearbyScheduler: NearbyNotificationScheduling {
-    private let center: UNUserNotificationCenter
+    private let center: NotificationCenterAdding
     private let userDefaults: UserDefaults
     private let now: () -> Date
 
-    private static let lastPOIKey = "worldguide.nearbyNotification.lastPOI.v1"
-    private static let lastDateKey = "worldguide.nearbyNotification.lastDate.v1"
+    private static let notifiedPOIDatesKey = "worldguide.nearbyNotification.notifiedPOIDates.v1"
 
     init(
-        center: UNUserNotificationCenter = .current(),
+        center: NotificationCenterAdding = UNUserNotificationCenter.current(),
         userDefaults: UserDefaults = .standard,
         now: @escaping () -> Date = Date.init
     ) {
@@ -63,15 +74,33 @@ final class UserNotificationNearbyScheduler: NearbyNotificationScheduling {
             trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
         )
         try? await center.add(request)
-        userDefaults.set(poi.id, forKey: Self.lastPOIKey)
-        userDefaults.set(now(), forKey: Self.lastDateKey)
+        recordNotification(poiID: poi.id, at: now())
     }
 
+    // One cooldown timestamp per POI, not just the single most recent one —
+    // otherwise alternating between two nearby POIs (common in
+    // landmark-dense areas) resets the cooldown for the one visited
+    // longest ago, defeating the anti-spam intent.
     private func shouldNotify(poiID: String) -> Bool {
-        guard userDefaults.string(forKey: Self.lastPOIKey) == poiID,
-              let lastDate = userDefaults.object(forKey: Self.lastDateKey) as? Date else {
-            return true
-        }
+        guard let lastDate = notifiedPOIDates()[poiID] else { return true }
         return now().timeIntervalSince(lastDate) > NearbyNotificationPolicy.cooldownSeconds
+    }
+
+    private func notifiedPOIDates() -> [String: Date] {
+        guard let data = userDefaults.data(forKey: Self.notifiedPOIDatesKey),
+              let decoded = try? JSONDecoder().decode([String: Date].self, from: data) else {
+            return [:]
+        }
+        return decoded
+    }
+
+    private func recordNotification(poiID: String, at date: Date) {
+        var dates = notifiedPOIDates()
+        dates[poiID] = date
+        // Prune entries already past the cooldown window so this doesn't
+        // grow unbounded over a long trip.
+        dates = dates.filter { date.timeIntervalSince($0.value) <= NearbyNotificationPolicy.cooldownSeconds }
+        guard let data = try? JSONEncoder().encode(dates) else { return }
+        userDefaults.set(data, forKey: Self.notifiedPOIDatesKey)
     }
 }

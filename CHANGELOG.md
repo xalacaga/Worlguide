@@ -105,6 +105,11 @@ Le format suit l'esprit de [Keep a Changelog](https://keepachangelog.com/fr/1.1.
   correspondance (`match.language` mal placé dans le décodage), donc les
   libellés retournés étaient toujours en anglais quel que soit la langue
   de recherche ayant réellement trouvé le résultat.
+- Le cooldown anti-spam des notifications de proximité ne mémorisait qu'un
+  seul POI précédent : en alternant entre deux POI proches, le cooldown du
+  premier était annulé dès qu'un deuxième était notifié, permettant des
+  notifications répétées dans les zones denses en monuments. Un historique
+  par POI (purgé après expiration du cooldown) remplace le couple unique.
 
 ### Changed
 
