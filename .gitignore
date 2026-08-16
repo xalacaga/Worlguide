@@ -1,0 +1,43 @@
+# Python (backend/)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Environment
+.env
+.env.*.local
+
+# Swift / Xcode (ios/)
+.build/
+.derivedData/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.swiftpm/
+
+# Generated Xcode project (specs/011) — ios/project.yml is the versioned
+# source of truth, regenerate with `xcodegen generate` from ios/
+ios/WorldGuide.xcodeproj/
+ios/build/
+ios/Generated-Info.plist
+
+# iOS secrets (never commit real values)
+ios/WorldGuide/Secrets.xcconfig
+
+# Graphify output (regenerated, not versioned)
+graphify-out/
+
+# Local assistant/editor state
+.claude/
+.codex/
+.vscode/
+
+# OS
+.DS_Store

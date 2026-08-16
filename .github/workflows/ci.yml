@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ios-spm:
+    name: ios spm (swift build & test)
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: ios/WorldGuide
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift build
+      - run: swift test
+
+  ios-app:
+    name: ios app (xcodegen & xcodebuild)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Prepare empty build config
+        working-directory: ios
+        run: cp WorldGuide/Secrets.xcconfig.example WorldGuide/Secrets.xcconfig
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate --spec project.yml
+      - name: Build app target
+        working-directory: ios
+        run: >
+          xcodebuild build
+          -project WorldGuide.xcodeproj
+          -scheme WorldGuide
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
